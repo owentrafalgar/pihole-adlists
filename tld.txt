@@ -3,6 +3,7 @@
 ! Description: Blocks TLD.
 ! Syntax: AdBlock
 !
+!
 ||aaa^
 ||aarp^
 ||abb^
