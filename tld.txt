@@ -805,7 +805,6 @@
 ||nc^
 ||ne^
 ||nec^
-||net^
 ||netbank^
 ||netflix^
 ||network^
@@ -859,7 +858,6 @@
 ||open^
 ||oracle^
 ||orange^
-||org^
 ||organic^
 ||origins^
 ||osaka^
