@@ -8,7 +8,11 @@ tld_source_file="tld_source.txt"
 tld_file="tld.txt"
 tld_source_path="$temp_dir$tld_source_file"
 tld_path="$work_dir/../tld/$tld_file"
-tld_whitelist="^com$|^de$|^net$|^org$"
+whitelist_file="tld-whitelist.txt"
+
+# create dynamic whitelist regex from file
+tld_whitelist=$(grep -vE '^\s*#|^\s*$' "$whitelist_file" | sed 's/^/^/;s/$/$/' | tr '\n' '|')
+tld_whitelist=${tld_whitelist%|}
 
 # creating and cleanup temp dir
 mkdir -p "$temp_dir"
