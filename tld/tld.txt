@@ -1,6 +1,6 @@
 [Adblock Plus]
-! Title: test TLD list
-! Description: Blocks TLD.
+! Title: TLD list
+! Description: Blocks TLDs.
 ! Syntax: AdBlock
 !
 !
@@ -946,7 +946,6 @@
 ||realty^
 ||recipes^
 ||red^
-||redstone^
 ||redumbrella^
 ||rehab^
 ||reise^
