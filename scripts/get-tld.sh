@@ -19,7 +19,7 @@ mkdir -p "$temp_dir"
 rm -f "$temp_dir"*
 
 # download the tld source list
-wget -i "$sources_path" -O "$tld_source_path"
+wget -q -i "$sources_path" -O "$tld_source_path" || { echo "ERROR: Failed to download TLD source list" >&2; exit 1; }
 
 # create the header for the adblock plus list
 cat > "$tld_path" << EOL
@@ -32,5 +32,6 @@ cat > "$tld_path" << EOL
 EOL
 
 # process the downloaded tld source list and append to the tld list
+cat "$tld_source_path" | grep -v '^#' | tr '[:upper:]' '[:lower:]' | grep -vE "$tld_whitelist" | sed 's/^/||/' | sed 's/$/^/' >> "$tld_path"
 
-cat "$tld_source_path" | grep -v '^#' | tr '[:upper:]' '[:lower:]' | grep -vE "$tld_whitelist" | sed 's/^/||/' | sed 's/$/^/' | tee -a "$tld_path"
+echo "TLD list updated: $(($(wc -l < "$tld_path") - 6)) TLDs written to $tld_path"
