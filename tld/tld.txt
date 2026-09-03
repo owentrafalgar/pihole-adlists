@@ -71,7 +71,6 @@
 ||aramco^
 ||archi^
 ||army^
-||arpa^
 ||art^
 ||arte^
 ||as^
@@ -347,7 +346,6 @@
 ||drive^
 ||dtv^
 ||dubai^
-||dunlop^
 ||dupont^
 ||durban^
 ||dvag^
@@ -490,7 +488,6 @@
 ||gold^
 ||goldpoint^
 ||golf^
-||goo^
 ||goodyear^
 ||goog^
 ||google^
@@ -746,6 +743,7 @@
 ||memorial^
 ||men^
 ||menu^
+||merck^
 ||merckmsd^
 ||mg^
 ||mh^
@@ -1235,6 +1233,7 @@
 ||watches^
 ||weather^
 ||weatherchannel^
+||web^
 ||webcam^
 ||weber^
 ||website^
@@ -1252,7 +1251,6 @@
 ||wine^
 ||winners^
 ||wme^
-||wolterskluwer^
 ||woodside^
 ||work^
 ||works^
