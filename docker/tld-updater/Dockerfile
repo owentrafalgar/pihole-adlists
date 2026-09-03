@@ -13,4 +13,4 @@ RUN chmod +x /run.sh && \
     crontab /etc/cron.d/tld-updater && \
     touch /var/log/cron.log
 
-CMD cron && tail -f /var/log/cron.log
+CMD echo "[$(date '+%Y-%m-%d %H:%M:%S')] TLD updater container started, next run per schedule" >> /var/log/cron.log && cron && tail -f /var/log/cron.log
