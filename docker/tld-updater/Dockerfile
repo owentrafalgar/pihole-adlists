@@ -10,7 +10,6 @@ COPY docker/tld-updater/crontab /etc/cron.d/tld-updater
 
 RUN chmod +x /run.sh && \
     chmod 0644 /etc/cron.d/tld-updater && \
-    crontab /etc/cron.d/tld-updater && \
-    touch /var/log/cron.log
+    crontab /etc/cron.d/tld-updater
 
-CMD cron && tail -f /var/log/cron.log
+CMD cron -f
