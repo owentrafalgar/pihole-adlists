@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -uo pipefail
 
 REPO_DIR="/repo"
 REPO_URL="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/pihole-adlists.git"
@@ -28,10 +28,14 @@ if [ "$EXIT_CODE" -eq 0 ]; then
     if bash get-tld.sh; then
         cd "$REPO_DIR"
         if [ -n "$(git status --porcelain)" ]; then
-            git add tld/tld.txt
-            git commit --quiet -m "Auto-update TLD list ($(date +%Y-%m-%d))"
-            git push --quiet
-            RESULT_MSG="changes pushed"
+            if git add tld/tld.txt && \
+               git commit --quiet -m "Auto-update TLD list ($(date +%Y-%m-%d))" && \
+               git push --quiet; then
+                RESULT_MSG="changes pushed"
+            else
+                EXIT_CODE=1
+                RESULT_MSG="git commit/push failed"
+            fi
         else
             RESULT_MSG="no changes"
         fi
@@ -51,4 +55,7 @@ else
 fi
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] TLD updater: finished"
-exit $EXIT_CODE
+
+/next-run.sh
+
+exit "$EXIT_CODE"
