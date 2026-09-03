@@ -8,40 +8,47 @@ STATUS_FILE="$STATUS_DIR/tld-updater.status"
 
 mkdir -p "$STATUS_DIR"
 
-echo "=== $(date) : Starting TLD list update ==="
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] TLD updater: starting"
 
 EXIT_CODE=0
+RESULT_MSG=""
 
-{
-    if [ ! -d "$REPO_DIR/.git" ]; then
-        echo "Cloning repo..."
-        git clone "$REPO_URL" "$REPO_DIR"
-    else
-        echo "Pulling latest changes..."
-        cd "$REPO_DIR"
-        git pull
-    fi
+if [ ! -d "$REPO_DIR/.git" ]; then
+    git clone --quiet "$REPO_URL" "$REPO_DIR" || EXIT_CODE=$?
+else
+    cd "$REPO_DIR"
+    git pull --quiet || EXIT_CODE=$?
+fi
 
+if [ "$EXIT_CODE" -eq 0 ]; then
     git config --global user.email "tld-updater@mytwoquarters.com"
     git config --global user.name "TLD Updater Bot"
 
     cd "$REPO_DIR/scripts"
-    bash get-tld.sh
-
-    cd "$REPO_DIR"
-    if [ -n "$(git status --porcelain)" ]; then
-        echo "Changes detected, committing..."
-        git add tld/tld.txt
-        git commit -m "Auto-update TLD list ($(date +%Y-%m-%d))"
-        git push
-        echo "Pushed changes."
+    if bash get-tld.sh; then
+        cd "$REPO_DIR"
+        if [ -n "$(git status --porcelain)" ]; then
+            git add tld/tld.txt
+            git commit --quiet -m "Auto-update TLD list ($(date +%Y-%m-%d))"
+            git push --quiet
+            RESULT_MSG="changes pushed"
+        else
+            RESULT_MSG="no changes"
+        fi
     else
-        echo "No changes."
+        EXIT_CODE=$?
+        RESULT_MSG="get-tld.sh failed"
     fi
-} || EXIT_CODE=$?
+fi
 
 echo "TIMESTAMP=$(date +%s)" > "$STATUS_FILE"
 echo "EXIT_CODE=$EXIT_CODE" >> "$STATUS_FILE"
 
-echo "=== $(date) : Done (exit code $EXIT_CODE) ==="
+if [ "$EXIT_CODE" -ne 0 ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] TLD updater: FAILED - $RESULT_MSG"
+else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] TLD updater: success - $RESULT_MSG"
+fi
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] TLD updater: finished"
 exit $EXIT_CODE
