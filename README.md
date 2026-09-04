@@ -5,12 +5,6 @@ Custom Pi-hole blocklist for blocking entire TLDs (Top-Level Domains), used acro
 ## Structure
 
     .
-    ├── docker/
-    │   └── tld-updater/       # Container that automatically refreshes the TLD list
-    │       ├── Dockerfile
-    │       ├── crontab        # schedule for automatic updates
-    │       ├── run.sh          # main update/commit/push logic
-    │       └── next-run.sh     # calculates and logs the next scheduled run
     ├── scripts/
     │   ├── get-tld.sh          # builds tld/tld.txt from sources/tld-sources.txt
     │   └── tld-whitelist.txt   # TLDs to exclude from blocking
@@ -30,20 +24,10 @@ Custom Pi-hole blocklist for blocking entire TLDs (Top-Level Domains), used acro
 
 ## Automatic updates
 
-The `docker/tld-updater` container runs on a schedule (see `docker/tld-updater/crontab`) and:
-- pulls the latest repo state,
-- re-runs `get-tld.sh`,
-- commits and pushes `tld/tld.txt` if it changed.
-
-Logs are visible via `docker logs tld-updater` (or Dozzle), and a status file at `/status/tld-updater.status`
-is used by a Checkmk local check (piggybacked to a `tld-updater` host) to alert if a run fails or hasn't
-run recently.
-
-### Changing the schedule
-
-Edit `docker/tld-updater/crontab` (standard 5-field cron syntax), commit, and rebuild the container.
-`next-run.sh` reads this file dynamically, so the "next scheduled run" log line always reflects the
-current schedule without needing separate changes.
+This list is kept up to date automatically by [git-cron-runner](https://github.com/owentrafalgar/git-cron-runner),
+a generic container that clones this repo, runs `scripts/get-tld.sh` on a schedule, and commits/pushes
+`tld/tld.txt` if it changed. See that repo for the container itself, configuration, and monitoring details
+(logs, Checkmk status file, etc.).
 
 ## Maintaining the whitelist
 
@@ -53,4 +37,4 @@ If a legitimate TLD ends up blocked (breaking normal DNS resolution, e.g. revers
 
 ## Manual run
 
-    docker exec tld-updater /run.sh
+    bash scripts/get-tld.sh
