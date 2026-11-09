@@ -1,28 +1,56 @@
 #!/bin/bash
+# Builds tld/tld.txt (Adblock Plus syntax) from the TLD source list(s) in
+# sources/tld-sources.txt, excluding every TLD listed in scripts/tld-whitelist.txt.
+# Can be run from any working directory.
+set -euo pipefail
 
-# variables
-work_dir="$(pwd)"
-sources_path="$work_dir/../sources/tld-sources.txt"
-temp_dir="$work_dir/../temp/"
-tld_source_file="tld_source.txt"
-tld_file="tld.txt"
-tld_source_path="$temp_dir$tld_source_file"
-tld_path="$work_dir/../tld/$tld_file"
-whitelist_file="tld-whitelist.txt"
+# paths are resolved relative to this script, not the current working directory
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_dir="$(dirname "$script_dir")"
+sources_path="$repo_dir/sources/tld-sources.txt"
+whitelist_path="$script_dir/tld-whitelist.txt"
+tld_path="$repo_dir/tld/tld.txt"
 
-# create dynamic whitelist regex from file
-tld_whitelist=$(grep -vE '^\s*#|^\s*$' "$whitelist_file" | sed 's/^/^/;s/$/$/' | tr '\n' '|')
-tld_whitelist=${tld_whitelist%|}
+# sanity check: abort if the source yields fewer TLDs than this
+# (protects against committing an empty/truncated list, e.g. on a broken download)
+min_tlds=1000
 
-# creating and cleanup temp dir
-mkdir -p "$temp_dir"
-rm -f "$temp_dir"*
+die() { echo "ERROR: $*" >&2; exit 1; }
 
-# download the tld source list
-wget -q -i "$sources_path" -O "$tld_source_path" || { echo "ERROR: Failed to download TLD source list" >&2; exit 1; }
+[[ -r "$sources_path" ]] || die "Sources file not found: $sources_path"
+[[ -r "$whitelist_path" ]] || die "Whitelist file not found: $whitelist_path"
 
-# create the header for the adblock plus list
-cat > "$tld_path" << EOL
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+
+# normalize a list: strip comments, CR (Windows line endings) and whitespace,
+# lowercase everything, drop empty lines
+normalize() {
+    sed -e 's/#.*//' -e 's/\r//g' -e 's/[[:space:]]//g' "$1" \
+        | tr '[:upper:]' '[:lower:]' \
+        | { grep -v '^$' || true; }
+}
+
+# download the tld source list(s)
+wget -q --timeout=30 --tries=3 -i "$sources_path" -O "$tmp_dir/source.txt" \
+    || die "Failed to download TLD source list"
+
+normalize "$whitelist_path" > "$tmp_dir/whitelist.txt"
+
+# keep only valid TLD labels (letters, digits, hyphen; covers punycode "xn--"),
+# then remove whitelisted TLDs (exact, fixed-string match)
+normalize "$tmp_dir/source.txt" \
+    | { grep -E '^[a-z0-9-]+$' || true; } \
+    | { grep -vxFf "$tmp_dir/whitelist.txt" || true; } \
+    > "$tmp_dir/tlds.txt"
+
+tld_count=$(wc -l < "$tmp_dir/tlds.txt")
+(( tld_count >= min_tlds )) \
+    || die "Only $tld_count TLDs found (expected at least $min_tlds), keeping existing $tld_path"
+
+# build the complete list in the temp dir first, then replace the target file in one step
+{
+    cat << 'EOL'
 [Adblock Plus]
 ! Title: TLD list
 ! Description: Blocks TLDs.
@@ -30,8 +58,9 @@ cat > "$tld_path" << EOL
 !
 !
 EOL
+    sed 's/.*/||&^/' "$tmp_dir/tlds.txt"
+} > "$tmp_dir/tld.txt"
 
-# process the downloaded tld source list and append to the tld list
-cat "$tld_source_path" | grep -v '^#' | tr '[:upper:]' '[:lower:]' | grep -vE "$tld_whitelist" | sed 's/^/||/' | sed 's/$/^/' >> "$tld_path"
+cat "$tmp_dir/tld.txt" > "$tld_path"
 
-echo "TLD list updated: $(($(wc -l < "$tld_path") - 6)) TLDs written to $tld_path"
+echo "TLD list updated: $tld_count TLDs written to $tld_path"
